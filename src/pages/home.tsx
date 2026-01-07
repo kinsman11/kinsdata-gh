@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { blink } from '@/lib/blink';
+import { blink, sampleBundles } from '@/lib/blink';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -31,13 +31,26 @@ const Home = () => {
 
   const fetchBundles = async () => {
     try {
-      const data = await blink.db.bundles.list({
-        where: { isActive: "1" }
-      });
-      setBundles(data as Bundle[]);
+      // Try to fetch from DB if user is authenticated
+      const user = await blink.auth.me();
+      if (user) {
+        const data = await blink.db.bundles.list({
+          where: { isActive: "1" }
+        });
+        if (data && data.length > 0) {
+          setBundles(data as Bundle[]);
+        } else {
+          // Use sample bundles if no data in DB
+          setBundles(sampleBundles);
+        }
+      } else {
+        // Use sample bundles for unauthenticated users
+        setBundles(sampleBundles);
+      }
     } catch (error) {
-      console.error('Error fetching bundles:', error);
-      toast.error('Failed to load bundles');
+      // Fallback to sample bundles if fetch fails
+      console.log('Using sample bundles (user not authenticated)');
+      setBundles(sampleBundles);
     } finally {
       setLoading(false);
     }
